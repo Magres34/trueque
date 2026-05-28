@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Plata o Trueque</title>
+  <style>
+    :root{
+      --bg:#0f1220;--card:#171a2b;--muted:#8b90aa;--text:#e8ebff;--accent:#6ae3ff;--accent2:#7affb2;--danger:#ff6b6b;
+      --ring:rgba(106,227,255,.35);
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu; background:radial-gradient(1200px 800px at 20% -10%,#1a1d33,transparent),radial-gradient(1000px 600px at 120% 10%,#16243b,transparent),var(--bg); color:var(--text)}
+    a{color:inherit}
+    .container{max-width:1200px;margin-inline:auto;padding:24px}
+    header{position:sticky;top:0;background:linear-gradient(180deg,rgba(15,18,32,.9),rgba(15,18,32,.65));backdrop-filter:blur(8px);border-bottom:1px solid #232744;z-index:10}
+    .nav{display:flex;align-items:center;gap:16px;padding:14px 24px}
+    .brand{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.5px}
+    .brand .logo{width:28px;height:28px;border-radius:8px;background:conic-gradient(from 120deg at 50% 50%,#6ae3ff, #7affb2, #a88bff,#6ae3ff); box-shadow:0 0 32px rgba(106,227,255,.35)}
+    .pill{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid #2a2f50;border-radius:12px;background:#121528}
+    .search{flex:1;display:flex;gap:10px}
+    .search input{all:unset;flex:1;padding:10px 12px;border-radius:10px;background:#11142a;border:1px solid #242a4a}
+    .btn{all:unset;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 14px;border-radius:12px;border:1px solid #2a2f50;background:linear-gradient(180deg,#1a1f3b,#141831);cursor:pointer}
+    .btn:hover{box-shadow:0 0 0 3px var(--ring)}
+    .btn.primary{background:linear-gradient(180deg,#1e2b4a,#16233f);border-color:#2a3e66}
+    .btn.accent{background:linear-gradient(180deg,#0e3641,#0b2b35);border-color:#1f5d67}
+
+    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:18px}
+    .card{position:relative;background:linear-gradient(180deg,#14172b,#101329);border:1px solid #232744;border-radius:18px;overflow:hidden;box-shadow:0 6px 18px rgba(0,0,0,.35)}
+    .card .img{aspect-ratio:4/3;width:100%;object-fit:cover;background:#0e1020}
+    .card .content{padding:14px 14px 16px}
+    .title{font-weight:700;margin:0 0 4px}
+    .muted{color:var(--muted)}
+    .price{font-weight:800}
+    .tag{display:inline-block;padding:4px 8px;border:1px solid #2a2f50;background:#101328;border-radius:999px;font-size:12px;margin-right:6px;margin-top:6px}
+
+    .toolbar{display:flex;flex-wrap:wrap;gap:10px;margin:18px 0}
+    .toolbar .group{display:flex;gap:8px}
+
+    .panel{background:linear-gradient(180deg,#14172b,#101329);border:1px solid #232744;border-radius:16px;padding:16px}
+
+    dialog{border:none;border-radius:16px;padding:0;max-width:720px;width:min(720px,96vw);background:linear-gradient(180deg,#171a2b,#0f1326);color:var(--text);box-shadow:0 30px 80px rgba(0,0,0,.55);}
+    dialog::backdrop{background:rgba(5,8,18,.6)}
+    .modal-head{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid #212646}
+    .modal-body{padding:16px}
+    .modal-actions{display:flex;justify-content:flex-end;gap:10px;padding:16px;border-top:1px solid #212646}
+
+    .chat{display:grid;grid-template-rows:auto 1fr auto; height:min(72vh,700px)}
+    .chat .msgs{overflow:auto;padding:12px;display:flex;flex-direction:column;gap:10px}
+    .msg{max-width:76%;padding:10px 12px;border-radius:12px;border:1px solid #2a2f50;background:#11162d}
+    .msg.me{align-self:flex-end;background:linear-gradient(180deg,#0e2f36,#0a242b);border-color:#1f5d67}
+    .msg .meta{font-size:12px;color:var(--muted);margin-bottom:6px}
+    .msg .offer{display:inline-block;margin-top:8px;padding:6px 10px;border-radius:10px;border:1px dashed #2a2f50}
+    .chat .composer{display:flex;gap:8px;padding:12px;border-top:1px solid #212646}
+    .chat input[type="text"], .chat input[type="number"]{all:unset;flex:1;padding:12px;border-radius:10px;background:#0e132a;border:1px solid #242a4a}
+
+    .field{display:grid;gap:6px;margin-bottom:12px}
+    .field input, .field textarea, .field select{all:unset;padding:10px 12px;border-radius:10px;background:#0f132b;border:1px solid #272c4f}
+
+
+    @media (max-width: 720px){
+      .nav{flex-wrap:wrap}
+      .search{order: 3; width:100%}
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="nav">
+      <div class="brand"><div class="logo"></div> Plata o Trueque
+        <span class="tag">Compra o Intercambia objetos</span>
+      </div>
+      <div class="search">
+        <input id="searchInput" placeholder="Buscar productos o categorías…" />
+        <button class="btn" id="btnAddListing">+ Publicar</button>
+      </div>
+      <div class="pill" title="Usuario actual">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 12c2.761 0 5-2.239 5-5s-2.239-5-5-5-5 2.239-5 5 2.239 5 5 5Zm0 2c-5.523 0-10 3.134-10 7v1h20v-1c0-3.866-4.477-7-10-7Z" fill="#7affb2"/></svg>
+        <span id="currentUser">—</span>
+        <button class="btn" id="btnChangeUser" style="margin-left:8px">Cambiar</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="toolbar">
+      <div class="group">
+        <button class="btn" id="filterAll">Todo</button>
+        <button class="btn" id="filterSale">Solo venta</button>
+        <button class="btn" id="filterTrade">Acepta trueque</button>
+      </div>
+      <div class="group">
+        <select class="btn" id="sortSelect" aria-label="Ordenar">
+          <option value="new">Más recientes</option>
+          <option value="price-asc">Precio: bajo a alto</option>
+          <option value="price-desc">Precio: alto a bajo</option>
+        </select>
+      </div>
+    </div>
+
+    <section class="grid" id="listingsGrid" aria-live="polite"></section>
+
+    <footer style="margin:28px 0;color:var(--muted);text-align:center">
+      <small>Demostración local: abre esta misma página en dos pestañas, elige usuarios distintos y chatea para negociar precio o trueque. 
+      En producción necesitarás un backend (por ejemplo, Firebase, Supabase o un servidor con Socket.io).</small>
+    </footer>
+  </main>
+
+  <!-- Modal: Nueva publicación -->
+  <dialog id="listingModal">
+    <form method="dialog" class="modal-head">
+      <strong>Nueva publicación</strong>
+      <button class="btn" value="close">✕</button>
+    </form>
+    <div class="modal-body">
+      <div class="field">
+        <label>Título</label>
+        <input id="fTitle" placeholder="Ej: Bicicleta de montaña" required />
+      </div>
+      <div class="field">
+        <label>Descripción</label>
+        <textarea id="fDesc" rows="3" placeholder="Estado, detalles, uso…"></textarea>
+      </div>
+      <div class="field">
+        <label>Precio (COP)</label>
+        <input id="fPrice" type="number" min="0" step="1000" placeholder="250000" />
+      </div>
+      <div class="field">
+        <label>¿Acepta trueque?</label>
+        <select id="fTrade">
+          <option value="yes">Sí</option>
+          <option value="no">No</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Imagen (URL opcional)</label>
+        <input id="fImg" placeholder="https://…" />
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" id="saveListing">Publicar</button>
+    </div>
+  </dialog>
+
+  <!-- Modal: Chat -->
+  <dialog id="chatModal">
+    <div class="modal-head">
+      <div>
+        <strong>Chat de negociación</strong>
+        <div class="muted" id="chatSubtitle"></div>
+      </div>
+      <form method="dialog"><button class="btn">✕</button></form>
+    </div>
+    <div class="modal-body chat">
+      <div class="panel" style="margin-bottom:12px">
+        <strong id="roomTitle">—</strong>
+        <div class="muted" id="roomInfo">Ofrece dinero o trueque; todo queda registrado en este chat.</div>
+      </div>
+      <div class="msgs" id="msgs"></div>
+      <div class="composer">
+        <input id="msgInput" type="text" placeholder="Escribe un mensaje…" />
+        <button class="btn" id="sendMsg">Enviar</button>
+        <button class="btn accent" id="offerMoney" title="Ofertar dinero">💲</button>
+        <button class="btn" id="offerItem" title="Proponer trueque">🔁</button>
+      </div>
+    </div>
+  </dialog>
+
+  <script>
+  // ===== Utilities =====
+  const $ = sel => document.querySelector(sel);
+  const $$ = sel => Array.from(document.querySelectorAll(sel));
+  const currency = new Intl.NumberFormat('es-CO',{style:'currency',currency:'COP',maximumFractionDigits:0});
+
+  const bus = ('BroadcastChannel' in window) ? new BroadcastChannel('ecomarket-bus') : null;
+  const emit = (type,payload)=>{
+    // storage event fallback
+    const packet = {type,payload,ts:Date.now()};
+    if (bus) bus.postMessage(packet);
+    localStorage.setItem('ecomarket:signal', JSON.stringify(packet));
+  };
+  window.addEventListener('storage', (e)=>{
+    if(e.key==='ecomarket:signal' && e.newValue){
+      try { onBus(JSON.parse(e.newValue)); } catch{ }
+    }
+  });
+  if (bus) bus.onmessage = (ev)=> onBus(ev.data);
+
+  function onBus({type,payload}){
+    if (type==='listings-updated') { loadListings(); }
+    if (type==='chat:new') { if(currentRoom && payload.roomId===currentRoom.id){ appendMessage(payload.message,true); } }
+  }
+
+  // ===== State =====
+  let currentUser = localStorage.getItem('ecomarket:user') || '';
+  let listings = [];
+  let filterMode = 'all';
+  let currentRoom = null; // {id, listingId, seller, buyer, title}
+
+  function ensureUser(){
+    if (!currentUser){
+      currentUser = prompt('Elige tu nombre de usuario (visible en el chat):','Usuario'+Math.floor(Math.random()*1000))||'Invitado';
+      localStorage.setItem('ecomarket:user', currentUser);
+    }
+    $('#currentUser').textContent = currentUser;
+  }
+
+  // ===== Listings =====
+  function seedIfEmpty(){
+    const key='ecomarket:listings';
+    if (!localStorage.getItem(key)){
+      const demo=[
+        {id:crypto.randomUUID(), title:'Bicicleta MTB Rin 29', desc:'Aluminio, 9 velocidades. Poco uso.', price:900000, trade:true, img:'https://images.unsplash.com/photo-1611689342806-3c6b88c5d6a8?q=80&w=1200&auto=format&fit=crop'},
+        {id:crypto.randomUUID(), title:'Guitarra acústica', desc:'Incluye funda. Buen estado.', price:250000, trade:true, img:'https://images.unsplash.com/photo-1510915361894-db8b60106cb1?q=80&w=1200&auto=format&fit=crop'},
+        {id:crypto.randomUUID(), title:'Silla gamer', desc:'Ergonómica, reclinable.', price:380000, trade:false, img:'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?q=80&w=1200&auto=format&fit=crop'},
+        {id:crypto.randomUUID(), title:'Nintendo Switch', desc:'Con dos Joy-Con y Zelda.', price:1200000, trade:true, img:'https://images.unsplash.com/photo-1585079542156-2755d9c8afff?q=80&w=1200&auto=format&fit=crop'}
+      ];
+      // attach sellers
+      const sellers=['Ana','Camilo','Sofía','Diego'];
+      demo.forEach((d,i)=> d.seller = sellers[i%sellers.length]);
+      localStorage.setItem(key, JSON.stringify(demo));
+    }
+  }
+
+  function loadListings(){
+    listings = JSON.parse(localStorage.getItem('ecomarket:listings')||'[]');
+    renderListings();
+  }
+
+  function saveListings(){
+    localStorage.setItem('ecomarket:listings', JSON.stringify(listings));
+    emit('listings-updated',{});
+  }
+
+  function createCard(item){
+    const card = document.createElement('article');
+    card.className='card';
+    card.innerHTML = `
+      <img class="img" src="${item.img||'data:image/svg+xml;utf8,'+encodeURIComponent(placeholderSVG(item.title))}" alt="${escapeHtml(item.title)}"/>
+      <div class="content">
+        <h3 class="title">${escapeHtml(item.title)}</h3>
+        <div class="muted" style="min-height:38px">${escapeHtml(item.desc||'')}</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px">
+          <span class="price">${item.price?currency.format(item.price):'Sin precio'}</span>
+          <div>
+            ${item.trade?'<span class="tag">Acepta trueque</span>':''}
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <button class="btn primary" data-action="chat" data-id="${item.id}">Negociar</button>
+          ${item.seller===currentUser?'<button class="btn" data-action="delete" data-id="'+item.id+'">Eliminar</button>':''}
+        </div>
+        <div class="muted" style="margin-top:8px;font-size:12px">Vendedor: ${escapeHtml(item.seller)}</div>
+      </div>`;
+    card.addEventListener('click', (ev)=>{
+      const btn=ev.target.closest('button'); if(!btn) return;
+      const id=btn.getAttribute('data-id');
+      const action=btn.getAttribute('data-action');
+      if (action==='chat') openChat(id);
+      if (action==='delete'){ if(confirm('¿Eliminar esta publicación?')){ delListing(id); } }
+    });
+    return card;
+  }
+
+  function renderListings(){
+    const q = ($('#searchInput').value||'').toLowerCase();
+    const mode = filterMode;
+    const list = listings
+      .filter(l => !q || (l.title.toLowerCase().includes(q)|| (l.desc||'').toLowerCase().includes(q)))
+      .filter(l => mode==='all' || (mode==='sale' && !l.trade) || (mode==='trade' && l.trade))
+      .sort((a,b)=>{
+        const sel = $('#sortSelect').value;
+        if(sel==='new') return 0; // insertion order
+        if(sel==='price-asc') return (a.price||0)-(b.price||0);
+        if(sel==='price-desc') return (b.price||0)-(a.price||0);
+        return 0;
+      });
+    const grid = $('#listingsGrid');
+    grid.innerHTML='';
+    list.forEach(item=> grid.appendChild(createCard(item)));
+  }
+
+  function addListing(data){
+    const item = {id:crypto.randomUUID(), title:data.title, desc:data.desc, price: data.price?Number(data.price):0, trade:data.trade==='yes', img:data.img, seller: currentUser};
+    listings.unshift(item);
+    saveListings();
+    renderListings();
+  }
+  function delListing(id){
+    listings = listings.filter(l=>l.id!==id);
+    saveListings(); renderListings();
+  }
+
+  // ===== Chat =====
+  function openChat(listingId){
+    const listing = listings.find(l=> l.id===listingId);
+    if(!listing){ alert('Publicación no encontrada'); return; }
+    if (listing.seller===currentUser){
+      // Seller chats with potential compradores; allow selecting buyer alias
+      const buyer = prompt('Ingresa el nombre del comprador para abrir la sala (o tu otro alias en otra pestaña):','Comprador1')||'Comprador1';
+      currentRoom = makeRoom(listing, buyer);
+    } else {
+      currentRoom = makeRoom(listing, currentUser);
+    }
+    $('#roomTitle').textContent = listing.title;
+    $('#roomInfo').textContent = `Vendedor: ${listing.seller} · Sala: ${currentRoom.id.slice(0,8)}…`;
+    $('#chatSubtitle').textContent = `Negocia con ${listing.seller} usando dinero o intercambio.`;
+    $('#msgs').innerHTML = '';
+    loadRoomMessages();
+    $('#chatModal').showModal();
+  }
+
+  function makeRoom(listing, buyerName){
+    const parts = [listing.id, listing.seller, buyerName];
+    const id = parts.join('|');
+    return {id, listingId:listing.id, seller:listing.seller, buyer:buyerName, title:listing.title};
+  }
+
+  function roomKey(){ return 'ecomarket:room:'+currentRoom.id; }
+
+  function loadRoomMessages(){
+    const arr = JSON.parse(localStorage.getItem(roomKey())||'[]');
+    arr.forEach(m => appendMessage(m,false));
+    scrollMsgs();
+  }
+
+  function saveMessage(message){
+    const key = roomKey();
+    const arr = JSON.parse(localStorage.getItem(key)||'[]');
+    arr.push(message);
+    localStorage.setItem(key, JSON.stringify(arr));
+    emit('chat:new',{roomId: currentRoom.id, message});
+  }
+
+  function appendMessage(message, incoming=false){
+    const wrap = document.createElement('div');
+    const isMe = message.sender===currentUser;
+    wrap.className='msg'+(isMe?' me':'');
+    wrap.innerHTML = `
+      <div class="meta">${escapeHtml(message.sender)} · ${new Date(message.ts).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div>
+      <div>${renderMessageBody(message)}</div>
+      ${message.kind!=='text' ? `<div class="offer">${renderOffer(message)}</div>`: ''}
+    `;
+    $('#msgs').appendChild(wrap);
+    if (!incoming) scrollMsgs();
+  }
+
+  function renderMessageBody(m){
+    if (m.kind==='money') return `Oferta de dinero: ${currency.format(m.amount)} — ${escapeHtml(m.text||'')}`;
+    if (m.kind==='item') return `Propuesta de trueque: ${escapeHtml(m.item)} — ${escapeHtml(m.text||'')}`;
+    return escapeHtml(m.text||'');
+  }
+  function renderOffer(m){
+    if (m.kind==='money') return `El comprador ofrece ${currency.format(m.amount)}. Si aceptas, confirmen método de pago.`;
+    if (m.kind==='item') return `Intercambiar por: ${escapeHtml(m.item)}. Si aceptas, definan lugar/envío.`;
+    return '';
+  }
+
+  function sendText(){
+    const val = $('#msgInput').value.trim();
+    if(!val) return;
+    const msg = {sender: currentUser, ts: Date.now(), kind:'text', text:val};
+    appendMessage(msg);
+    saveMessage(msg);
+    $('#msgInput').value='';
+  }
+
+  function offerMoney(){
+    const amount = Number(prompt('¿Cuánto ofreces? (COP)','100000'));
+    if (!amount || amount<=0) return;
+    const note = prompt('Mensaje (opcional):','¿Te sirve pago por Nequi o Bancolombia?')||'';
+    const msg = {sender: currentUser, ts: Date.now(), kind:'money', amount, text:note};
+    appendMessage(msg); saveMessage(msg);
+  }
+
+  function offerItem(){
+    const item = prompt('¿Qué objeto propones a cambio?','Audífonos Bluetooth nuevos');
+    if (!item) return;
+    const note = prompt('Mensaje (opcional):','Lo entrego con factura, 6 meses de uso.')||'';
+    const msg = {sender: currentUser, ts: Date.now(), kind:'item', item, text:note};
+    appendMessage(msg); saveMessage(msg);
+  }
+
+  function scrollMsgs(){ const el=$('#msgs'); el.scrollTop = el.scrollHeight; }
+
+  function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c])); }
+  function placeholderSVG(text){
+    const t = encodeURIComponent((text||'Producto').slice(0,20));
+    return `<svg xmlns='http://www.w3.org/2000/svg' width='600' height='450'><defs><linearGradient id='g' x1='0' x2='1'><stop offset='0' stop-color='%231a2a4a'/><stop offset='1' stop-color='%23101a36'/></linearGradient></defs><rect width='100%' height='100%' fill='url(%23g)'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' fill='%237affb2' font-family='system-ui' font-size='28'>${t}</text></svg>`;
+  }
+
+  // ===== Events =====
+  $('#btnAddListing').addEventListener('click', ()=> $('#listingModal').showModal());
+  $('#saveListing').addEventListener('click', ()=>{
+    const data={title:$('#fTitle').value.trim(), desc:$('#fDesc').value.trim(), price:$('#fPrice').value, trade:$('#fTrade').value, img:$('#fImg').value.trim()};
+    if(!data.title){ alert('El título es obligatorio'); return; }
+    addListing(data); $('#listingModal').close();
+    // limpiar
+    ['#fTitle','#fDesc','#fPrice','#fImg'].forEach(id=> $(id).value=''); $('#fTrade').value='yes';
+  });
+
+  $('#sendMsg').addEventListener('click', (e)=>{ e.preventDefault(); sendText(); });
+  $('#msgInput').addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); sendText(); } });
+  $('#offerMoney').addEventListener('click', (e)=>{ e.preventDefault(); offerMoney(); });
+  $('#offerItem').addEventListener('click', (e)=>{ e.preventDefault(); offerItem(); });
+
+  $('#btnChangeUser').addEventListener('click', ()=>{ const name=prompt('Nuevo usuario:', currentUser)||currentUser; currentUser=name||currentUser; localStorage.setItem('ecomarket:user', currentUser); $('#currentUser').textContent=currentUser; renderListings(); });
+  $('#searchInput').addEventListener('input', renderListings);
+  $('#sortSelect').addEventListener('change', renderListings);
+  $('#filterAll').addEventListener('click', ()=>{ filterMode='all'; renderListings(); });
+  $('#filterSale').addEventListener('click', ()=>{ filterMode='sale'; renderListings(); });
+  $('#filterTrade').addEventListener('click', ()=>{ filterMode='trade'; renderListings(); });
+
+  // ===== Boot =====
+  ensureUser();
+  seedIfEmpty();
+  loadListings();
+  </script>
+</body>
+</html>
